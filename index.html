@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>five days at epstien</title>
+<style>
+  body { margin:0; font-family: Arial; background: #0b132b; color: white; text-align: center;}
+  #startScreen, #gameScreen { width:100%; height:100vh; display:flex; flex-direction: column; justify-content: center; align-items: center;}
+  button { padding: 12px 20px; font-size:18px; border:none; border-radius:25px; background:#5bc0be; color:#000; cursor:pointer; margin-top:15px; }
+  canvas { background:#1c2541; border-radius:15px; display:block; margin:10px auto; }
+  #controls button { font-size:22px; padding:12px 18px; margin:5px; border-radius:50%; border:none; background:#5bc0be; }
+  #score { font-size:20px; margin-top:10px; }
+</style>
+</head>
+
+<body>
+
+<!-- شاشة البداية -->
+<div id="startScreen">
+  <h1>five night at epstien </h1>
+  <p>تم تطوير هذه اللعبة بواسطة عبد الرحمان زراولية</p>
+  <button onclick="startGame()">ابدأ اللعبة</button>
+</div>
+
+<!-- شاشة اللعبة -->
+<div id="gameScreen" style="display:none;">
+  <canvas id="game" width="300" height="500"></canvas>
+  <div id="score">النقاط: 0</div>
+  <div id="controls">
+    <button onclick="moveLeft()">⬅️</button>
+    <button onclick="moveRight()">➡️</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let carImg = new Image();
+carImg.src = "car.png"; // صورة السيارة
+
+let obstaclesImg = [
+  "obstacle1.png",
+  "obstacle2.png",
+  "obstacle3.png"
+].map(src => { let img = new Image(); img.src = src; return img; });
+
+let car, obstacles, score, gameInterval, keys = {};
+let roadOffset = 0;
+
+// بدء اللعبة
+function startGame(){
+  document.getElementById("startScreen").style.display = "none";
+  document.getElementById("gameScreen").style.display = "flex";
+  init();
+}
+
+function init(){
+  car = {x:130, y:420, width:50, height:90};
+  obstacles = [];
+  score = 0;
+  roadOffset = 0;
+  document.getElementById("score").innerText = "النقاط: 0";
+  clearInterval(gameInterval);
+  gameInterval = setInterval(gameLoop, 50);
+}
+
+// تحكم بالكيبورد
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+// أزرار لمس
+function moveLeft(){ car.x -= 15; if(car.x<0) car.x=0; }
+function moveRight(){ car.x += 15; if(car.x+car.width>canvas.width) car.x=canvas.width-car.width; }
+
+// إنشاء عقبات
+function createObstacle(){
+  let width = Math.floor(Math.random()*60)+40;
+  let x = Math.floor(Math.random()*(canvas.width-width));
+  let type = Math.floor(Math.random()*obstaclesImg.length);
+  obstacles.push({x:x, y:-50, width:width, height:30, img:obstaclesImg[type]});
+}
+
+// رسم الطريق
+function drawRoad(){
+  ctx.fillStyle = "#333";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // خطوط الطريق متحركة
+  roadOffset +=5;
+  if(roadOffset>40) roadOffset = 0;
+
+  ctx.fillStyle = "white";
+  for(let i=0;i<canvas.height/40;i++){
+    ctx.fillRect(canvas.width/2-2, i*40+roadOffset, 4, 20);
+  }
+}
+
+// اللعبة
+function gameLoop(){
+  drawRoad();
+
+  // تحريك السيارة بالكيبورد
+  if(keys['ArrowLeft']) moveLeft();
+  if(keys['ArrowRight']) moveRight();
+
+  // رسم السيارة
+  ctx.drawImage(carImg, car.x, car.y, car.width, car.height);
+
+  // إنشاء عقبة جديدة
+  if(Math.random()<0.03) createObstacle();
+
+  // رسم وتحريك العقبات
+  for(let i=obstacles.length-1;i>=0;i--){
+    let ob = obstacles[i];
+    ob.y +=5;
+    ctx.drawImage(ob.img, ob.x, ob.y, ob.width, ob.height);
+
+    // تصادم
+    if(car.x < ob.x + ob.width && car.x + car.width > ob.x &&
+       car.y < ob.y + ob.height && car.y + car.height > ob.y){
+      clearInterval(gameInterval);
+      setTimeout(()=>{ alert("انتهت اللعبة 😅\nالنقاط: "+score); location.reload(); },10);
+    }
+
+    // إزالة العقبات خارج الشاشة
+    if(ob.y>canvas.height) obstacles.splice(i,1);
+  }
+
+  score++;
+  document.getElementById("score").innerText = "النقاط: " + score;
+}
+</script>
+
+</body>
+</html>
